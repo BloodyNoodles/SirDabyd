@@ -50,7 +50,7 @@ const AdminDashboard = () => {
 
   return (
     <div className="container">
-      <h1>Student Management System</h1>
+      <h1>Task Management System</h1>
       <form onSubmit={handleSubmit}>
         <input
           type="text"
