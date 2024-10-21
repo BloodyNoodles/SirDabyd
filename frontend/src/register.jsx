@@ -6,7 +6,9 @@ const Register = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [userType, setUserType] = useState('user'); // New state for user type
+  const [firstname, setFirstname] = useState(''); // Capture firstname
+  const [lastname, setLastname] = useState(''); // Capture lastname
+  const [userType, setUserType] = useState('user'); // User type
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const navigate = useNavigate();
@@ -24,6 +26,8 @@ const Register = () => {
       const response = await axios.post('http://localhost:5000/auth/register', {
         email,
         password,
+        firstname, // Include firstname in the request
+        lastname, // Include lastname in the request
         userType, // Include user type in the request
       });
 
@@ -46,6 +50,24 @@ const Register = () => {
       {error && <p style={{ color: 'red' }}>{error}</p>}
       {success && <p style={{ color: 'green' }}>{success}</p>}
       <form onSubmit={handleRegister}>
+        <div>
+          <label>Firstname</label>
+          <input
+            type="text"
+            value={firstname}
+            onChange={(e) => setFirstname(e.target.value)}
+            required
+          />
+        </div>
+        <div>
+          <label>Lastname</label>
+          <input
+            type="text"
+            value={lastname}
+            onChange={(e) => setLastname(e.target.value)}
+            required
+          />
+        </div>
         <div>
           <label>Email</label>
           <input
