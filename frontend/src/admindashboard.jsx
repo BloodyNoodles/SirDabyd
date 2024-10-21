@@ -1,51 +1,52 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import './AdminDashboard.css'; // Adjust the path as necessary
 
 const AdminDashboard = () => {
-  const [students, setStudents] = useState([]);
+  const [tasks, setTasks] = useState([]); 
   const [formData, setFormData] = useState({
-    first_name: "",
-    last_name: "",
-    age: "",
-    email: "",
+    title: "",         // Updated field names for tasks
+    description: "",
+    due_date: "",
+    status: "",
   });
   const [isEdit, setIsEdit] = useState(false);
   const [currentId, setCurrentId] = useState(null);
 
   useEffect(() => {
-    fetchStudents();
+    fetchTasks(); // Updated to fetch tasks
   }, []);
 
-  // Fetch all students
-  const fetchStudents = async () => {
-    const response = await axios.get("http://localhost:5000/students");
-    setStudents(response.data);
+  // Fetch all tasks
+  const fetchTasks = async () => {
+    const response = await axios.get("http://localhost:5000/tasks"); // Updated endpoint
+    setTasks(response.data);
   };
 
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (isEdit) {
-      await axios.put(`http://localhost:5000/students/${currentId}`, formData);
+      await axios.put(`http://localhost:5000/tasks/${currentId}`, formData); // Updated endpoint
       setIsEdit(false);
     } else {
-      await axios.post("http://localhost:5000/students", formData);
+      await axios.post("http://localhost:5000/tasks", formData); // Updated endpoint
     }
-    fetchStudents();
-    setFormData({ first_name: "", last_name: "", age: "", email: "" });
+    fetchTasks(); // Fetch updated task list
+    setFormData({ title: "", description: "", due_date: "", status: "" }); // Reset form
   };
 
   // Handle edit
-  const handleEdit = (student) => {
-    setFormData(student);
+  const handleEdit = (task) => {
+    setFormData(task);
     setIsEdit(true);
-    setCurrentId(student.id);
+    setCurrentId(task.id);
   };
 
   // Handle delete
   const handleDelete = async (id) => {
-    await axios.delete(`http://localhost:5000/students/${id}`);
-    fetchStudents();
+    await axios.delete(`http://localhost:5000/tasks/${id}`); // Updated endpoint
+    fetchTasks(); // Fetch updated task list
   };
 
   return (
@@ -54,61 +55,68 @@ const AdminDashboard = () => {
       <form onSubmit={handleSubmit}>
         <input
           type="text"
-          placeholder="First Name"
-          value={formData.first_name}
+          placeholder="Title" // Updated placeholder
+          value={formData.title}
           onChange={(e) =>
-            setFormData({ ...formData, first_name: e.target.value })
+            setFormData({ ...formData, title: e.target.value })
           }
           required
         />
         <input
           type="text"
-          placeholder="Last Name"
-          value={formData.last_name}
+          placeholder="Description" // Updated placeholder
+          value={formData.description}
           onChange={(e) =>
-            setFormData({ ...formData, last_name: e.target.value })
+            setFormData({ ...formData, description: e.target.value })
           }
           required
         />
         <input
-          type="number"
-          placeholder="Age"
-          value={formData.age}
-          onChange={(e) => setFormData({ ...formData, age: e.target.value })}
+          type="date" // Updated input type for due date
+          placeholder="Due Date"
+          value={formData.due_date}
+          onChange={(e) =>
+            setFormData({ ...formData, due_date: e.target.value })
+          }
           required
         />
-        <input
-          type="email"
-          placeholder="Email"
-          value={formData.email}
-          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+        <select
+          value={formData.status}
+          onChange={(e) =>
+            setFormData({ ...formData, status: e.target.value })
+          }
           required
-        />
+        >
+          <option value="">Select Status</option> // Added a dropdown for status
+          <option value="pending">Pending</option>
+          <option value="completed">Completed</option>
+          <option value="in-progress">In Progress</option>
+        </select>
         <button type="submit">
-          {isEdit ? "Update Student" : "Add Student"}
+          {isEdit ? "Update Task" : "Add Task"} 
         </button>
       </form>
-      <h2>Student List</h2>
+      <h2>Task List</h2>
       <table>
         <thead>
           <tr>
-            <th>First Name</th>
-            <th>Last Name</th>
-            <th>Age</th>
-            <th>Email</th>
+            <th>Title</th> 
+            <th>Description</th>
+            <th>Due Date</th>
+            <th>Status</th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody>
-          {students.map((student) => (
-            <tr key={student.id}>
-              <td>{student.first_name}</td>
-              <td>{student.last_name}</td>
-              <td>{student.age}</td>
-              <td>{student.email}</td>
+          {tasks.map((task) => ( 
+            <tr key={task.id}>
+              <td>{task.title}</td> 
+              <td>{task.description}</td>
+              <td>{task.due_date}</td>
+              <td>{task.status}</td>
               <td>
-                <button onClick={() => handleEdit(student)}>Edit</button>
-                <button onClick={() => handleDelete(student.id)}>Delete</button>
+                <button onClick={() => handleEdit(task)}>Edit</button>
+                <button onClick={() => handleDelete(task.id)}>Delete</button>
               </td>
             </tr>
           ))}
