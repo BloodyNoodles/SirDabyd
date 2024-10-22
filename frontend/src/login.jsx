@@ -12,7 +12,6 @@ const Login = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
 
-    
     try {
       // Send login request
       const response = await axios.post('http://localhost:5000/auth/login', {
@@ -23,21 +22,27 @@ const Login = () => {
       // Store the token in localStorage
       localStorage.setItem('token', response.data.token);
 
-      // Get user type from response
-      const userType = response.data.userType;
+      // Store the user ID or user data in localStorage
+      const tokenPayload = JSON.parse(atob(response.data.token.split('.')[1])); // Decode the JWT token
+      localStorage.setItem('userId', tokenPayload.id); // Store user ID in local storage
+
+      // Log the saved data from localStorage for debugging
+      console.log("Saved Token:", localStorage.getItem('token'));
+      console.log("Saved UserID:", localStorage.getItem('userId'));
+
+      const userType = tokenPayload.userType; // Get user type from the token payload
 
       setSuccess('Login successful! Redirecting...');
       setError('');
 
       // Redirect based on user type
       setTimeout(() => {
-        console.log('User Type:', userType); // Debugging log
         if (userType === 'admin') {
-          navigate('/admindashboard'); // Admin dashboard route
+          navigate('/admindashboard');
         } else if (userType === 'user') {
-          navigate('/userdashboard'); // User dashboard route
+          navigate('/userdashboard');
         } else {
-          navigate('/'); // Default route if userType is unknown
+          navigate('/');
         }
       }, 2000);
     } catch (err) {
@@ -45,6 +50,7 @@ const Login = () => {
       setSuccess('');
     }
   };
+
 
   return (
     <div>
