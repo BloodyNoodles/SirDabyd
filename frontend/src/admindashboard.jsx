@@ -5,6 +5,7 @@ import "./AdminDashboard.css"; // Adjust the path as necessary
 const AdminDashboard = () => {
   const [tasks, setTasks] = useState([]);
   const [users, setUsers] = useState([]); // State for users
+  const [userMap, setUserMap] = useState({}); // State for user map (id -> user object)
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -35,6 +36,12 @@ const AdminDashboard = () => {
     try {
       const response = await axios.get("http://localhost:5000/auth/users");
       setUsers(response.data);
+      // Map users by ID for easier lookup
+      const userMapObj = {};
+      response.data.forEach((user) => {
+        userMapObj[user.id] = `${user.firstname} ${user.lastname}`;
+      });
+      setUserMap(userMapObj); // Save the user map
     } catch (error) {
       console.error("Error fetching users:", error);
     }
@@ -123,7 +130,7 @@ const AdminDashboard = () => {
           {users.length > 0 ? (
             users.map((user) => (
               <option key={user.id} value={user.id}>
-                {user.first_name} {user.last_name}
+                {user.firstname} {user.lastname}
               </option>
             ))
           ) : (
@@ -152,8 +159,8 @@ const AdminDashboard = () => {
               <td>{task.due_date}</td>
               <td>{task.status}</td>
               <td>
-                {task.first_name && task.last_name
-                  ? `${task.first_name} ${task.last_name}`
+                {userMap[task.assigned_user_id]
+                  ? userMap[task.assigned_user_id]
                   : "Unassigned"}
               </td>
               <td>
