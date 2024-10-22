@@ -1,39 +1,62 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import './AdminDashboard.css'; // Adjust the path as necessary
+import "./AdminDashboard.css"; // Adjust the path as necessary
 
 const AdminDashboard = () => {
-  const [tasks, setTasks] = useState([]); 
+  const [tasks, setTasks] = useState([]);
+  const [users, setUsers] = useState([]); // State for users
   const [formData, setFormData] = useState({
-    title: "",         // Updated field names for tasks
+    title: "",
     description: "",
     due_date: "",
     status: "",
+    assigned_user_id: "", // Field for assigned user
   });
   const [isEdit, setIsEdit] = useState(false);
   const [currentId, setCurrentId] = useState(null);
 
   useEffect(() => {
-    fetchTasks(); // Updated to fetch tasks
+    fetchTasks();
+    fetchUsers(); // Fetch users when the component mounts
   }, []);
 
   // Fetch all tasks
   const fetchTasks = async () => {
-    const response = await axios.get("http://localhost:5000/tasks"); // Updated endpoint
-    setTasks(response.data);
+    try {
+      const response = await axios.get("http://localhost:5000/tasks");
+      setTasks(response.data);
+    } catch (error) {
+      console.error("Error fetching tasks:", error);
+    }
+  };
+
+  // Fetch all users
+  const fetchUsers = async () => {
+    try {
+      const response = await axios.get("http://localhost:5000/auth/users");
+      setUsers(response.data);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+    }
   };
 
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (isEdit) {
-      await axios.put(`http://localhost:5000/tasks/${currentId}`, formData); // Updated endpoint
+      await axios.put(`http://localhost:5000/tasks/${currentId}`, formData);
       setIsEdit(false);
     } else {
-      await axios.post("http://localhost:5000/tasks", formData); // Updated endpoint
+      await axios.post("http://localhost:5000/tasks", formData);
     }
-    fetchTasks(); // Fetch updated task list
-    setFormData({ title: "", description: "", due_date: "", status: "" }); // Reset form
+    fetchTasks();
+    setFormData({
+      title: "",
+      description: "",
+      due_date: "",
+      status: "",
+      assigned_user_id: "",
+    });
   };
 
   // Handle edit
@@ -45,8 +68,8 @@ const AdminDashboard = () => {
 
   // Handle delete
   const handleDelete = async (id) => {
-    await axios.delete(`http://localhost:5000/tasks/${id}`); // Updated endpoint
-    fetchTasks(); // Fetch updated task list
+    await axios.delete(`http://localhost:5000/tasks/${id}`);
+    fetchTasks();
   };
 
   return (
@@ -55,16 +78,14 @@ const AdminDashboard = () => {
       <form onSubmit={handleSubmit}>
         <input
           type="text"
-          placeholder="Title" // Updated placeholder
+          placeholder="Title"
           value={formData.title}
-          onChange={(e) =>
-            setFormData({ ...formData, title: e.target.value })
-          }
+          onChange={(e) => setFormData({ ...formData, title: e.target.value })}
           required
         />
         <input
           type="text"
-          placeholder="Description" // Updated placeholder
+          placeholder="Description"
           value={formData.description}
           onChange={(e) =>
             setFormData({ ...formData, description: e.target.value })
@@ -72,7 +93,7 @@ const AdminDashboard = () => {
           required
         />
         <input
-          type="date" // Updated input type for due date
+          type="date"
           placeholder="Due Date"
           value={formData.due_date}
           onChange={(e) =>
@@ -82,38 +103,59 @@ const AdminDashboard = () => {
         />
         <select
           value={formData.status}
-          onChange={(e) =>
-            setFormData({ ...formData, status: e.target.value })
-          }
+          onChange={(e) => setFormData({ ...formData, status: e.target.value })}
           required
         >
-          <option value="">Select Status</option> // Added a dropdown for status
+          <option value="">Select Status</option>
           <option value="pending">Pending</option>
           <option value="completed">Completed</option>
           <option value="in-progress">In Progress</option>
         </select>
-        <button type="submit">
-          {isEdit ? "Update Task" : "Add Task"} 
-        </button>
+        <select
+          id="assignedUser"
+          value={formData.assigned_user_id}
+          onChange={(e) =>
+            setFormData({ ...formData, assigned_user_id: e.target.value })
+          }
+          required
+        >
+          <option value="">Assign User</option>
+          {users.length > 0 ? (
+            users.map((user) => (
+              <option key={user.id} value={user.id}>
+                {user.first_name} {user.last_name}
+              </option>
+            ))
+          ) : (
+            <option value="">No users found</option>
+          )}
+        </select>
+        <button type="submit">{isEdit ? "Update Task" : "Add Task"}</button>
       </form>
       <h2>Task List</h2>
       <table>
         <thead>
           <tr>
-            <th>Title</th> 
+            <th>Title</th>
             <th>Description</th>
             <th>Due Date</th>
             <th>Status</th>
+            <th>Assigned User</th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody>
-          {tasks.map((task) => ( 
+          {tasks.map((task) => (
             <tr key={task.id}>
-              <td>{task.title}</td> 
+              <td>{task.title}</td>
               <td>{task.description}</td>
               <td>{task.due_date}</td>
               <td>{task.status}</td>
+              <td>
+                {task.first_name && task.last_name
+                  ? `${task.first_name} ${task.last_name}`
+                  : "Unassigned"}
+              </td>
               <td>
                 <button onClick={() => handleEdit(task)}>Edit</button>
                 <button onClick={() => handleDelete(task.id)}>Delete</button>
