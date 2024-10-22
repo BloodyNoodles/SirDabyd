@@ -8,42 +8,46 @@ const loginRoutes = require("./login");
 
 const app = express();
 app.use(cors());
-
 app.use(bodyParser.json()); // Middleware to parse JSON
-  
+
 // MySQL connection
 const db = mysql.createConnection({
   host: "localhost",
   user: "root",
   port: "3306",
-  database: "task_management_system",  // Changed to task_management_system
+  database: "task_management_system",  // Make sure this matches your DB name
 });
 
-// Set your admin ID here (this is just an example)
-const adminId = 1; // Change this to your actual admin user ID
-
+// Handle MySQL disconnection and errors
 db.connect((err) => {
   if (err) {
     console.error("Database connection error:", err);
-    process.exit(1); // Exits the server process
+    process.exit(1); // Exits the server process on failure
   } else {
     console.log("Connected to MySQL");
   }
 });
 
+// Set your admin ID here (this is just an example)
+const adminId = 1; // Change this to your actual admin user ID or get it dynamically
+
 const authRoutes = require("./auth"); // Adjust path if needed
 app.use("/auth", authRoutes);
 app.use("/auth/users", userRoutes);
 
-// Get all tasks (admin can see all tasks)
+// Get all tasks (admin can see all tasks with assigned user data)
 app.get("/tasks", (req, res) => {
-  const sql = "SELECT * FROM tasks"; 
+  const sql = `
+    SELECT tasks.*, users.firstname, users.lastname 
+    FROM tasks 
+    LEFT JOIN users ON tasks.assigned_user_id = users.id`;
 
   db.query(sql, (err, result) => {
     if (err) {
+      console.error("Error fetching tasks:", err);
       return res.status(500).json({ message: 'Error fetching tasks' });
     }
-    res.json(result);
+    res.json(result); // Send the full task data including user information
   });
 });
 
@@ -60,6 +64,7 @@ app.post("/tasks", (req, res) => {
 
   db.query(sql, [title, description, due_date, status, assigned_user_id], (err, result) => {
     if (err) {
+      console.error("Error adding task:", err);
       return res.status(500).json({ message: "Error adding task" });
     }
     res.json({ id: result.insertId, ...req.body });
@@ -80,13 +85,27 @@ app.put("/tasks/:id", (req, res) => {
 
   db.query(sql, [title, description, due_date, status, assigned_user_id, id], (err, result) => {
     if (err) {
+      console.error("Error updating task:", err);
       return res.status(500).json({ message: "Error updating task" });
     }
-    res.json(result);
+    res.json({ message: "Task updated successfully", result });
   });
 });
 
-// Other routes...
+// Handle DELETE request to delete a task
+app.delete("/tasks/:id", (req, res) => {
+  const { id } = req.params;
+
+  const sql = "DELETE FROM tasks WHERE id = ?";
+
+  db.query(sql, [id], (err, result) => {
+    if (err) {
+      console.error("Error deleting task:", err);
+      return res.status(500).json({ message: "Error deleting task" });
+    }
+    res.json({ message: "Task deleted successfully" });
+  });
+});
 
 // Start the server
 app.listen(5000, () => {
