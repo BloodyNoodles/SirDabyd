@@ -1,57 +1,56 @@
 import { useNavigate } from 'react-router-dom';
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { format, parseISO } from "date-fns"; // Import date-fns
 import styles from './UserDashboard.module.css'; 
 
 const UserDashboard = () => {
   const navigate = useNavigate();
   const [tasks, setTasks] = useState([]);
-  const [currentTask, setCurrentTask] = useState(null); // To handle the task being edited
+  const [currentTask, setCurrentTask] = useState(null);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     due_date: '',
-    status: 'pending'
+    status: 'pending',
+    assigned_user_id: localStorage.getItem('userId')
   });
 
   const handleLogout = () => {
-    // Remove token and user ID from local storage and redirect to login
     localStorage.removeItem('token');
     localStorage.removeItem('userId');
     navigate('/login');
   };
 
   useEffect(() => {
-    fetchTasks(); // Fetch tasks for the logged-in user
+    fetchTasks();
   }, []);
 
-  // Fetch tasks assigned to the logged-in user
   const fetchTasks = async () => {
     try {
       const response = await axios.get("http://localhost:5000/tasks", {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`, // Send the token in the header
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
         }
       });
 
-      setTasks(response.data); // Set the tasks to be displayed
+      setTasks(response.data);
     } catch (error) {
       console.error("Error fetching tasks:", error);
     }
   };
 
-  // Populate the form with the task data for editing
   const handleEditClick = (task) => {
-    setCurrentTask(task.id); // Set the current task being edited
+    setCurrentTask(task.id);
     setFormData({
       title: task.title,
       description: task.description,
-      due_date: task.due_date.split('T')[0], // Format the due date for the input
-      status: task.status
+      due_date: format(parseISO(task.due_date), 'yyyy-MM-dd'), // Format the due date for the input
+      status: task.status,
+      assigned_user_id: task.assigned_user_id
     });
   };
 
-  // Handle form input changes
   const handleInputChange = (e) => {
     setFormData({
       ...formData,
@@ -59,36 +58,44 @@ const UserDashboard = () => {
     });
   };
 
-  // Handle the form submission to update the task
   const handleFormSubmit = async (e) => {
     e.preventDefault();
 
     if (currentTask) {
-      // Update the task
       try {
         await axios.put(`http://localhost:5000/tasks/${currentTask}`, formData, {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}` // Include the token
+            Authorization: `Bearer ${localStorage.getItem('token')}`
           }
         });
-        fetchTasks(); // Refetch tasks after update
-        setCurrentTask(null); // Clear current task after update
+        fetchTasks();
+        setCurrentTask(null);
+        setFormData({
+          title: '',
+          description: '',
+          due_date: '',
+          status: 'pending',
+          assigned_user_id: localStorage.getItem('userId')
+        });
       } catch (error) {
         console.error('Error updating task:', error);
       }
     }
   };
 
-  // Cancel editing
   const handleCancelEdit = () => {
-    setCurrentTask(null); // Clear current task, exit edit mode
+    setCurrentTask(null);
     setFormData({
       title: '',
       description: '',
       due_date: '',
-      status: 'pending'
+      status: 'pending',
+      assigned_user_id: localStorage.getItem('userId')
     });
   };
+
+  // Get current date in yyyy-MM-dd format
+  const today = new Date().toISOString().split('T')[0];
 
   return (
     <div className={styles.pageContainer}>
@@ -110,13 +117,12 @@ const UserDashboard = () => {
           </thead>
           <tbody>
             {tasks
-              // Filter tasks based on the userId in localStorage
               .filter(task => task.assigned_user_id == localStorage.getItem('userId'))
               .map((task) => (
                 <tr key={task.id}>
                   <td>{task.title}</td>
                   <td>{task.description}</td>
-                  <td>{task.due_date.split('T')[0]}</td>
+                  <td>{format(parseISO(task.due_date), 'yyyy-MM-dd')}</td> {/* Format the date for display */}
                   <td>{task.status}</td>
                   <td>
                     <button onClick={() => handleEditClick(task)}>Edit</button>
@@ -162,6 +168,7 @@ const UserDashboard = () => {
             value={formData.due_date}
             onChange={handleInputChange}
             required
+            min={today} // Set minimum date to today
           />
           <br />
           <label htmlFor="status">Status:</label>

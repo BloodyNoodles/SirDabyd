@@ -44,6 +44,11 @@ const Register = () => {
     }
   };
 
+  // Navigate to login page
+  const handleLoginRedirect = () => {
+    navigate('/login');
+  };
+
   return (
     <div>
       <h2>Register</h2>
@@ -107,6 +112,7 @@ const Register = () => {
         </div>
         <button type="submit">Register</button>
       </form>
+      <button onClick={handleLoginRedirect}>Back to Login</button> {/* Back to Login button */}
     </div>
   );
 };

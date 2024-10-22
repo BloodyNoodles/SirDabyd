@@ -28,9 +28,6 @@ db.connect((err) => {
   }
 });
 
-// Set your admin ID here (this is just an example)
-const adminId = 1; // Change this to your actual admin user ID or get it dynamically
-
 const authRoutes = require("./auth"); // Adjust path if needed
 app.use("/auth", authRoutes);
 app.use("/auth/users", userRoutes);
@@ -51,13 +48,30 @@ app.get("/tasks", (req, res) => {
   });
 });
 
+// Function to check if the user is an admin
+const isAdmin = (userId) => {
+  return new Promise((resolve, reject) => {
+    const sql = "SELECT user_type FROM users WHERE id = ?";
+    db.query(sql, [userId], (err, result) => {
+      if (err) {
+        return reject(err);
+      }
+      if (result.length > 0 && result[0].user_type === 'admin') {
+        return resolve(true);
+      }
+      resolve(false);
+    });
+  });
+};
+
 // Add a new task (admin can assign to specific user)
-app.post("/tasks", (req, res) => {
+app.post("/tasks", async (req, res) => {
   const { title, description, due_date, status, assigned_user_id } = req.body; // Include assigned_user_id
 
-  // Check if the admin is trying to assign the task to themselves
-  if (assigned_user_id == adminId) {
-    return res.status(400).json({ message: "Admin cannot assign tasks to themselves." });
+  // Check if the assigned user is an admin
+  const adminCheck = await isAdmin(assigned_user_id);
+  if (adminCheck) {
+    return res.status(400).json({ message: "Admin cannot be assigned tasks." });
   }
 
   const sql = "INSERT INTO tasks (title, description, due_date, status, assigned_user_id) VALUES (?, ?, ?, ?, ?)";  // Task-specific columns
@@ -72,13 +86,14 @@ app.post("/tasks", (req, res) => {
 });
 
 // Update a task (admin can update task details)
-app.put("/tasks/:id", (req, res) => {
+app.put("/tasks/:id", async (req, res) => {
   const { id } = req.params;
   const { title, description, due_date, status, assigned_user_id } = req.body; // Include assigned_user_id
 
-  // Check if the admin is trying to assign the task to themselves
-  if (assigned_user_id == adminId) {
-    return res.status(400).json({ message: "Admin cannot assign tasks to themselves." });
+  // Check if the assigned user is an admin
+  const adminCheck = await isAdmin(assigned_user_id);
+  if (adminCheck) {
+    return res.status(400).json({ message: "Admin cannot be assigned tasks." });
   }
 
   const sql = "UPDATE tasks SET title = ?, description = ?, due_date = ?, status = ?, assigned_user_id = ? WHERE id = ?"; // Task-specific fields

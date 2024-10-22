@@ -51,6 +51,10 @@ const Login = () => {
     }
   };
 
+  // Navigate to register page
+  const handleRegisterRedirect = () => {
+    navigate('/');
+  };
 
   return (
     <div>
@@ -78,6 +82,7 @@ const Login = () => {
         </div>
         <button type="submit">Login</button>
       </form>
+      <button onClick={handleRegisterRedirect}>Go to Register</button> {/* Register button */}
     </div>
   );
 };

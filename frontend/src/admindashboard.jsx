@@ -1,27 +1,27 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom"; // Import useNavigate for redirection
-import "./AdminDashboard.css"; // Adjust the path as necessary
-
+import { useNavigate } from "react-router-dom";
+import "./AdminDashboard.css";
+import { format, parseISO } from "date-fns";
 const AdminDashboard = () => {
   const [tasks, setTasks] = useState([]);
-  const [users, setUsers] = useState([]); // State for users
-  const [userMap, setUserMap] = useState({}); // State for user map (id -> user object)
+  const [users, setUsers] = useState([]);
+  const [userMap, setUserMap] = useState({});
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     due_date: "",
     status: "",
-    assigned_user_id: "", // Field for assigned user
+    assigned_user_id: "",
   });
   const [isEdit, setIsEdit] = useState(false);
   const [currentId, setCurrentId] = useState(null);
 
-  const navigate = useNavigate(); // Hook for navigation
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchTasks();
-    fetchUsers(); // Fetch users when the component mounts
+    fetchUsers();
   }, []);
 
   // Fetch all tasks
@@ -34,21 +34,21 @@ const AdminDashboard = () => {
     }
   };
 
-  // Fetch all users
+  // Fetch all users and filter out admin users
   const fetchUsers = async () => {
     try {
       const response = await axios.get("http://localhost:5000/auth/users");
       const filteredUsers = response.data.filter(
-        (user) => user.user_type !== "admin"
-      ); // Exclude admins
+        (user) => user.user_type !== "admin" // Exclude admin users
+      );
       setUsers(filteredUsers);
 
-      // Map users by ID for easier lookup
+      // Create user map for easy lookup
       const userMapObj = {};
       filteredUsers.forEach((user) => {
         userMapObj[user.id] = `${user.firstname} ${user.lastname}`;
       });
-      setUserMap(userMapObj); // Save the user map
+      setUserMap(userMapObj);
     } catch (error) {
       console.error("Error fetching users:", error);
     }
@@ -57,36 +57,46 @@ const AdminDashboard = () => {
   // Format date to display only the date (without time)
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString(); // This will format it to something like "MM/DD/YYYY"
+    if (isNaN(date)) {
+      return "Invalid Date"; // Handle invalid date cases
+    }
+    return date.toLocaleDateString();
   };
 
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (isEdit) {
-      await axios.put(`http://localhost:5000/tasks/${currentId}`, formData);
-      setIsEdit(false);
-    } else {
-      await axios.post("http://localhost:5000/tasks", formData);
+
+    try {
+      if (isEdit) {
+        await axios.put(`http://localhost:5000/tasks/${currentId}`, formData);
+        setIsEdit(false);
+      } else {
+        await axios.post("http://localhost:5000/tasks", formData);
+      }
+      fetchTasks();
+      setFormData({
+        title: "",
+        description: "",
+        due_date: "",
+        status: "",
+        assigned_user_id: "",
+      });
+    } catch (error) {
+      console.error(
+        "Error submitting form:",
+        error.response?.data || error.message
+      );
+      alert("Admin cannot be assigned tasks.");
     }
-    fetchTasks();
-    setFormData({
-      title: "",
-      description: "",
-      due_date: "",
-      status: "",
-      assigned_user_id: "",
-    });
   };
 
   // Handle edit
   const handleEdit = (task) => {
-    const formattedDueDate = new Date(task.due_date)
-      .toISOString()
-      .split("T")[0]; // Convert to "YYYY-MM-DD"
+    const formattedDueDate = format(parseISO(task.due_date), "yyyy-MM-dd");
     setFormData({
       ...task,
-      due_date: formattedDueDate, // Set the formatted date for the form input
+      due_date: formattedDueDate,
     });
     setIsEdit(true);
     setCurrentId(task.id);
@@ -100,10 +110,8 @@ const AdminDashboard = () => {
 
   // Handle logout
   const handleLogout = () => {
-    // Clear any authentication tokens or user data
-    localStorage.removeItem("authToken"); // Adjust as needed
-    // Redirect to login page
-    navigate("/login"); // Assuming you have a route for login
+    localStorage.removeItem("authToken");
+    navigate("/login");
   };
 
   // Get today's date in YYYY-MM-DD format
@@ -112,7 +120,7 @@ const AdminDashboard = () => {
   return (
     <div className="container">
       <h1>Task Management System</h1>
-      <button onClick={handleLogout}>Logout</button> {/* Logout button */}
+      <button onClick={handleLogout}>Logout</button>
       <form onSubmit={handleSubmit}>
         <input
           type="text"
@@ -134,7 +142,7 @@ const AdminDashboard = () => {
           type="date"
           placeholder="Due Date"
           value={formData.due_date}
-          min={today} // Set minimum date to today
+          min={today}
           onChange={(e) =>
             setFormData({ ...formData, due_date: e.target.value })
           }
